@@ -82,8 +82,6 @@ def create_pwd_manually():
         if respect_policies.lower() in ["yes", "y"]:
             dont_check_pwd = False
         pwd = input('Password: ')
-        if dont_check_pwd:
-            break
-        elif is_pwd_strong(pwd):
+        if dont_check_pwd or is_pwd_strong(pwd):
             break
     return pwd

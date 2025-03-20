@@ -1,7 +1,7 @@
 # password manager: generator and handler
 # Developed by ABBASSI Ahmed Aziz
 
-from file_handler import *
+from file_handler import create_file, search, add_to_file, read_file, update, delete, remove_file
 
 
 # choose the running mode

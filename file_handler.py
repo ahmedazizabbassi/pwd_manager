@@ -1,17 +1,17 @@
 from pickle import dump, load
-from ppwd import *
-# noinspection PyUnresolvedReferences
+from ppwd import hash_password, create_pwd_randomly, create_pwd_manually, pwd_random_or_not
 from prettytable import PrettyTable
 from os import remove
 from os.path import exists
 
+INVALID_FILE_NAME_MSG = "Please enter a valid file name!"
 
 # take the name the file that we work on from user
 def get_file_name():
     while True:
         file_name = input("Name your file : ")
         if verify(file_name):
-            if file_name[-4:] == ".pwd":
+            if file_name.endswith(".pwd"):
                 return file_name[:-4]
             return file_name
         else:
@@ -75,7 +75,7 @@ def add_to_file():
             dump(data, f)  # load data to the file
 
     else:
-        print('Please enter a valid file name!')
+        print(INVALID_FILE_NAME_MSG)
         add_to_file()
 
 
@@ -99,7 +99,7 @@ def read_file():
                     break
 
     else:
-        print('Please enter a valid file name!')
+        print(INVALID_FILE_NAME_MSG)
         read_file()
 
 
@@ -179,106 +179,74 @@ def print_file(tab):
 def update():
     try:
         file_name = get_file_name() + '.pwd'
-
         with open(file_name, 'rb') as f:
             tab = []
             rep = update_domain_or_pwd()
 
-            # the user here choose to update just the domain
             if rep == 'domain':
-                domain = get_domain()
-
-                # check if the domain does not exist before
-                while not domain_exists_in_file(domain, file_name):
-                    print('The domain name does not exist!')
-                    domain = get_domain()
-
-                new_domain = get_domain('Enter new domain: ')
-
-                while True:
-                    try:
-                        data = load(f)
-                        if data['domain'] == domain:
-                            new_data = {'domain': new_domain, 'pwd': data['pwd']}
-                            tab.append(new_data)
-                        else:
-                            tab.append(data)
-
-                    except EOFError:
-                        break
-                print("The domain is updated", end="")
-
-            # here the user choose to update just the password
+                update_domain(f, tab, file_name)
             elif rep == 'pwd':
-                domain = get_domain()
-
-                # check if the domain does not exist before
-                while not domain_exists_in_file(domain, file_name):
-                    print('The domain name does not exist!')
-                    domain = get_domain()
-
-                print('Choose how to create your new password!')
-                pwd_rand = pwd_random_or_not()
-                if pwd_rand:
-                    raw_pwd = create_pwd_randomly()
-                else:
-                    raw_pwd = create_pwd_manually()
-                newpwd = hash_password(raw_pwd)
-
-                while True:
-                    try:
-                        data = load(f)
-                        if data['domain'] == domain:
-                            new_data = {'domain': data['domain'], 'pwd': newpwd}
-                            tab.append(new_data)
-                        else:
-                            tab.append(data)
-
-                    except EOFError:
-                        break
-                print("Password is updated", end="")
-
-            # here the user choose to update both the domain and the password
+                update_password(f, tab, file_name)
             else:
-                domain = get_domain()
+                update_both(f, tab, file_name)
 
-                # check if the domain does not exist before
-                while not domain_exists_in_file(domain, file_name):
-                    print('The domain name does not exist!')
-                    domain = get_domain()
-
-                new_domain = get_new_domain()
-
-                print('Choose how to create your new password!')
-                pwd_rand = pwd_random_or_not()
-                if pwd_rand:
-                    raw_pwd = create_pwd_randomly()
-                else:
-                    raw_pwd = create_pwd_manually()
-                newpwd = hash_password(raw_pwd)
-
-                while True:
-                    try:
-                        data = load(f)
-                        if data['domain'] == domain:
-                            new_data = {'domain': new_domain, 'pwd': newpwd}
-                            tab.append(new_data)
-                        else:
-                            tab.append(data)
-
-                    except EOFError:
-                        break
-                print("Domain and password are updated", end="")
-
-        # loading the data to the new file updated
-        with open(file_name, 'wb') as f:
-            for data in tab:
-                dump(data, f)
-        print(" successfully!")
+        write_updated_data(file_name, tab)
 
     except FileNotFoundError:
-        print('Please enter a valid file name!')
+        print(INVALID_FILE_NAME_MSG)
         update()
+
+
+def update_domain(f, tab, file_name):
+    domain = get_existing_domain(file_name)
+    new_domain = get_domain('Enter new domain: ')
+    update_data(f, tab, lambda data: {'domain': new_domain, 'pwd': data['pwd']} if data['domain'] == domain else data)
+    print("The domain is updated", end="")
+
+
+def update_password(f, tab, file_name):
+    domain = get_existing_domain(file_name)
+    newpwd = get_new_password()
+    update_data(f, tab, lambda data: {'domain': data['domain'], 'pwd': newpwd} if data['domain'] == domain else data)
+    print("Password is updated", end="")
+
+
+def update_both(f, tab, file_name):
+    domain = get_existing_domain(file_name)
+    new_domain = get_new_domain()
+    newpwd = get_new_password()
+    update_data(f, tab, lambda data: {'domain': new_domain, 'pwd': newpwd} if data['domain'] == domain else data)
+    print("Domain and password are updated", end="")
+
+
+def get_existing_domain(file_name):
+    domain = get_domain()
+    while not domain_exists_in_file(domain, file_name):
+        print('The domain name does not exist!')
+        domain = get_domain()
+    return domain
+
+
+def get_new_password():
+    print('Choose how to create your new password!')
+    pwd_rand = pwd_random_or_not()
+    return hash_password(create_pwd_randomly() if pwd_rand else create_pwd_manually())
+
+
+def update_data(f, tab, update_func):
+    while True:
+        try:
+            data = load(f)
+            tab.append(update_func(data))
+        except EOFError:
+            break
+
+
+def write_updated_data(file_name, tab):
+    with open(file_name, 'wb') as f:
+        for data in tab:
+            dump(data, f)
+    print(" successfully!")
 
 
 # supprimer un domaine - delete domain
@@ -294,7 +262,7 @@ def delete():
                 counter += 1
             except EOFError:
                 if counter == 0:
-                    raise Exception
+                    raise EOFError("The file is empty!")
 
             domain = get_domain()
 
@@ -319,7 +287,7 @@ def delete():
 
         print('The domain is deleted successfully!')
     except FileNotFoundError:
-        print('Please enter a valid file name!')
+        print(INVALID_FILE_NAME_MSG)
         delete()
     except Exception:
         print("File is empty! You can do this operation!")
@@ -332,5 +300,5 @@ def remove_file():
         remove(_file_name)
         print("File deleted successfully!")
     else:
-        print("Please enter a valid file name!")
+        print(INVALID_FILE_NAME_MSG)
         remove_file()
