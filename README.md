@@ -58,7 +58,7 @@ pip install -r requirements.txt
 Run the application:
 
 ```bash
-python file_handler.py
+python main.py
 ```
 
 ## Usage
