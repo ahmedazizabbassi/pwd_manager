@@ -13,6 +13,7 @@
 
 from random import choice
 from string import ascii_lowercase, ascii_uppercase, digits, punctuation
+import bcrypt
 
 
 # choose if the password is random or not
@@ -52,6 +53,16 @@ def is_pwd_strong(pwd):
     else:
         print('Password is very week. Try another one!')
         return False
+
+
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed
+
+
+def verify_password(password, hashed):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed)
 
 
 def create_pwd_randomly():

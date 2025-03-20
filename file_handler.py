@@ -66,9 +66,11 @@ def add_to_file():
 
             pwd_is_random = pwd_random_or_not()
             if pwd_is_random:
-                data = {'domain': domain, 'pwd': create_pwd_randomly()}
+                raw_pwd = create_pwd_randomly()
             else:
-                data = {'domain': domain, 'pwd': create_pwd_manually()}
+                raw_pwd = create_pwd_manually()
+            hashed_pwd = hash_password(raw_pwd)
+            data = {'domain': domain, 'pwd': hashed_pwd}
 
             dump(data, f)  # load data to the file
 
@@ -218,9 +220,10 @@ def update():
                 print('Choose how to create your new password!')
                 pwd_rand = pwd_random_or_not()
                 if pwd_rand:
-                    newpwd = create_pwd_randomly()
+                    raw_pwd = create_pwd_randomly()
                 else:
-                    newpwd = create_pwd_manually()
+                    raw_pwd = create_pwd_manually()
+                newpwd = hash_password(raw_pwd)
 
                 while True:
                     try:
@@ -249,9 +252,10 @@ def update():
                 print('Choose how to create your new password!')
                 pwd_rand = pwd_random_or_not()
                 if pwd_rand:
-                    newpwd = create_pwd_randomly()
+                    raw_pwd = create_pwd_randomly()
                 else:
-                    newpwd = create_pwd_manually()
+                    raw_pwd = create_pwd_manually()
+                newpwd = hash_password(raw_pwd)
 
                 while True:
                     try:
